@@ -1,4 +1,4 @@
-import * as Matter from "matter-js";
+import { Engine, World, Bodies, Body, Events, Composite } from "matter-js";
 import { CAT_TIERS, POWERUPS } from "./data.js";
 import { loadSave, saveSave, newDefaultSave } from "./storage.js";
 import { bindUI } from "./ui.js";
@@ -8,8 +8,6 @@ const W = 420, H = 640;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const tapHint = document.getElementById("tapHint");
-
-const Engine = Matter.Engine, World = Matter.World, Bodies = Matter.Bodies, Body = Matter.Body, Events = Matter.Events, Composite = Matter.Composite;
 
 const engine = Engine.create({ gravity: { x: 0, y: 0.9 } });
 const world = engine.world;
@@ -113,7 +111,7 @@ function draw() {
 }
 
 function step() {
-  Matter.Engine.update(engine, 1000/60);
+  Engine.update(engine, 1000/60);
   draw();
   checkOverflow();
   requestAnimationFrame(step);
@@ -300,4 +298,3 @@ function saveStateDebounced() {
 
 // Tutorial on first run
 if (!loadSave()) setTimeout(runTutorial, 300);
-
