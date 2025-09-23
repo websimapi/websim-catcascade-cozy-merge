@@ -27,7 +27,8 @@ let sprites = {};
 let nextTierId = 0;
 let pendingCopy = false;
 let ui;
-let previewX = null, previewSprite = null;
+let previewX = null;
+let nextSpriteKey = null, previewTierId = 0;
 
 function loadSprites() {
   const keys = new Set(CAT_TIERS.map(t => t.sprite));
@@ -48,10 +49,8 @@ function randTierUnlocked() {
 }
 function prepareNext() {
   nextTierId = randTierUnlocked();
-  if (ui) {
-    ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]);
-    previewSprite = sprites[CAT_TIERS[nextTierId].sprite];
-  }
+  nextSpriteKey = CAT_TIERS[nextTierId].sprite; previewTierId = nextTierId;
+  if (ui) { ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]); }
 }
 
 function spawnCat(x, tierId, opts = {}) {
@@ -79,15 +78,15 @@ let dropAtX = (x) => {
 
 canvas.addEventListener("pointermove", (e) => {
   const rect = canvas.getBoundingClientRect();
-  previewX = Math.max(40, Math.min(W-40, (e.clientX - rect.left) / rect.width * W));
+  const x = (e.clientX - rect.left) / rect.width * W;
+  previewX = Math.max(40, Math.min(W-40, x));
 });
-canvas.addEventListener("pointerleave", () => { previewX = null; });
 canvas.addEventListener("pointerdown", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width * W;
   dropAtX(x);
-  previewX = null;
 });
+canvas.addEventListener("pointerleave", () => { previewX = null; });
 
 function draw() {
   ctx.clearRect(0,0,W,H);
@@ -97,13 +96,12 @@ function draw() {
   for (let y=H-100;y>0;y-=80){ ctx.fillRect(0,y,W,1); }
   ctx.restore();
 
-  // ghost preview of next cat
-  if (previewX != null && previewSprite) {
-    const r = CAT_TIERS[nextTierId].radius, s = r * 2.2;
-    ctx.save();
-    ctx.globalAlpha = 0.5;
+  // preview ghost
+  if (previewX != null && nextSpriteKey && sprites[nextSpriteKey]) {
+    const r = CAT_TIERS[previewTierId].radius, s = r * 2.2;
+    ctx.save(); ctx.globalAlpha = 0.45;
     ctx.translate(previewX, H - 40);
-    ctx.drawImage(previewSprite, -s/2, -s/2, s, s);
+    ctx.drawImage(sprites[nextSpriteKey], -s/2, -s/2, s, s);
     ctx.restore();
   }
 
@@ -257,15 +255,12 @@ function usePowerUp(key) {
   if (save.inventory[key] <= 0) return;
   if (key === "wild") {
     const wildTier = Math.min(save.unlockedTier, 1);
-    ui.updateNext(sprites["cat_wild.png"]);
-    previewSprite = sprites["cat_wild.png"];
+    ui.updateNext(sprites["cat_wild.png"]); nextSpriteKey = "cat_wild.png"; previewTierId = wildTier;
     const origDrop = dropAtX;
     const once = (x) => {
       if (!canDrop()) return;
       const body = spawnCat(Math.max(40, Math.min(W-40, x)), wildTier, { wild: true });
-      lastDropTime = performance.now();
-      prepareNext();
-      dropAtX = origDrop;
+      lastDropTime = performance.now(); prepareNext(); dropAtX = origDrop;
     };
     dropAtX = once;
   }
