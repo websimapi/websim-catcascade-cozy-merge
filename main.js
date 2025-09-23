@@ -25,6 +25,7 @@ let save = loadSave() || newDefaultSave();
 let sprites = {};
 let nextTierId = 0;
 let pendingCopy = false;
+let ui;
 
 function loadSprites() {
   const keys = new Set(CAT_TIERS.map(t => t.sprite));
@@ -35,7 +36,6 @@ function loadSprites() {
     sprites[src] = img;
   });
 }
-loadSprites();
 
 const cats = new Map(); // body.id -> { tier, wild?:boolean }
 let lastDropTime = 0;
@@ -46,9 +46,10 @@ function randTierUnlocked() {
 }
 function prepareNext() {
   nextTierId = randTierUnlocked();
-  ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]);
+  if (ui) {
+    ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]);
+  }
 }
-prepareNext();
 
 function spawnCat(x, tierId, opts = {}) {
   const t = CAT_TIERS[tierId];
@@ -63,6 +64,16 @@ function canDrop() {
   return performance.now() - lastDropTime > 350;
 }
 
+let dropAtX = (x) => {
+    if (!canDrop()) return;
+    tapHint.style.display = "none";
+    const body = spawnCat(Math.max(40, Math.min(W-40, x)), nextTierId);
+    lastDropTime = performance.now();
+    prepareNext();
+    // gentle impulse
+    Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.08);
+};
+
 canvas.addEventListener("pointermove", (e) => {
   // show hint position
 });
@@ -71,16 +82,6 @@ canvas.addEventListener("pointerdown", (e) => {
   const x = (e.clientX - rect.left) / rect.width * W;
   dropAtX(x);
 });
-
-function dropAtX(x) {
-  if (!canDrop()) return;
-  tapHint.style.display = "none";
-  const body = spawnCat(Math.max(40, Math.min(W-40, x)), nextTierId);
-  lastDropTime = performance.now();
-  prepareNext();
-  // gentle impulse
-  Body.setAngularVelocity(body, (Math.random() - 0.5) * 0.08);
-}
 
 function draw() {
   ctx.clearRect(0,0,W,H);
@@ -109,6 +110,13 @@ function draw() {
   ctx.globalAlpha = 0.15;
   ctx.fillRect(0, 80, W, 2);
   ctx.restore();
+}
+
+// Save debounce
+let saveTimer = 0;
+function saveStateDebounced() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=> saveSave(save), 200);
 }
 
 function step() {
@@ -191,6 +199,14 @@ function checkOverflow() {
   }
 }
 
+function openOverlay(title, html) {
+  const overlay = document.getElementById("overlay");
+  document.getElementById("modalTitle").textContent = title;
+  document.getElementById("modalBody").innerHTML = html;
+  overlay.classList.remove("hidden");
+  document.getElementById("modalClose").onclick = () => overlay.classList.add("hidden");
+}
+
 function gameOver() {
   openOverlay("Game Over", `
     <p>Score: <b>${save.score.toLocaleString()}</b></p>
@@ -199,14 +215,6 @@ function gameOver() {
       <button id="ovRestart" class="btn">Restart</button>
     </div>`);
   document.getElementById("ovRestart").onclick = restart;
-}
-
-function openOverlay(title, html) {
-  const overlay = document.getElementById("overlay");
-  document.getElementById("modalTitle").textContent = title;
-  document.getElementById("modalBody").innerHTML = html;
-  overlay.classList.remove("hidden");
-  document.getElementById("modalClose").onclick = () => overlay.classList.add("hidden");
 }
 
 function restart() {
@@ -224,26 +232,18 @@ function restart() {
   document.getElementById("overlay").classList.add("hidden");
 }
 
-const ui = bindUI({
-  getState: () => save,
-  onDailyClaim: claimDaily,
-  onTutorial: () => runTutorial(),
-  onRestart: restart,
-  onUsePowerUp: usePowerUp
-});
-
 // Power-ups
 function usePowerUp(key) {
   if (save.inventory[key] <= 0) return;
   if (key === "wild") {
     // Replace next with wild
-    nextTierId = Math.min(save.unlockedTier, 1); // low tier drop
+    const wildTier = Math.min(save.unlockedTier, 1); // low tier drop
     ui.updateNext(sprites["cat_wild.png"]);
     // when dropping, mark as wild
     const origDrop = dropAtX;
     const once = (x) => {
       if (!canDrop()) return;
-      const body = spawnCat(Math.max(40, Math.min(W-40, x)), nextTierId, { wild: true });
+      const body = spawnCat(Math.max(40, Math.min(W-40, x)), wildTier, { wild: true });
       lastDropTime = performance.now();
       prepareNext();
       dropAtX = origDrop; // restore
@@ -290,12 +290,20 @@ function claimDaily() {
   saveStateDebounced();
 }
 
-// Save debounce
-let saveTimer = 0;
-function saveStateDebounced() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(()=> saveSave(save), 200);
-}
+// --- INITIALIZE ---
+loadSprites();
+
+ui = bindUI({
+  getState: () => save,
+  onDailyClaim: claimDaily,
+  onTutorial: () => runTutorial(),
+  onRestart: restart,
+  onUsePowerUp: usePowerUp
+});
+
+prepareNext();
+
+requestAnimationFrame(step);
 
 // Tutorial on first run
 if (!loadSave()) setTimeout(runTutorial, 300);
