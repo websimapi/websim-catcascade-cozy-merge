@@ -9,6 +9,7 @@ const W = 420, H = 640;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const tapHint = document.getElementById("tapHint");
+const FAIL_Y = H - 80;
 
 const engine = Engine.create({ gravity: { x: 0, y: -0.9 } });
 const world = engine.world;
@@ -108,7 +109,7 @@ function draw() {
   // bottom "release line"
   ctx.save();
   ctx.globalAlpha = 0.15;
-  ctx.fillRect(0, H - 80, W, 2);
+  ctx.fillRect(0, FAIL_Y, W, 2);
   ctx.restore();
 }
 
@@ -189,14 +190,18 @@ Events.on(engine, "collisionStart", (evt) => {
 });
 
 function checkOverflow() {
-  let lowest = 0;
+  const now = performance.now();
+  let anyFail = false;
   cats.forEach((meta, id) => {
-    const b = Composite.get(world, id, "body");
-    if (b) lowest = Math.max(lowest, b.position.y + CAT_TIERS[meta.tier].radius);
+    const b = Composite.get(world, id, "body"); if (!b) return;
+    const r = CAT_TIERS[meta.tier].radius;
+    const bottom = b.position.y + r;
+    const age = now - (meta.born || now);
+    if (bottom > FAIL_Y) {
+      if (age > 800) { meta.belowSince ||= now; if (now - meta.belowSince > 5000) anyFail = true; }
+    } else { meta.belowSince = 0; }
   });
-  if (lowest > H - 100) {
-    gameOver();
-  }
+  if (anyFail) gameOver();
 }
 
 function openOverlay(title, html) {
