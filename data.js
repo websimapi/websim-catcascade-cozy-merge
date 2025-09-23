@@ -2,13 +2,13 @@ export const GAME_NAME = "CatCascade: Cozy Merge";
 
 export const CAT_TIERS = [
   { id: 0, key: "kitten", name: "Kitten", score: 2, radius: 18, sprite: "cat_kitten.png" },
-  { id: 1, key: "tabby", name: "Tabby", score: 5, radius: 22, sprite: "cat_tabby.png" },
-  { id: 2, key: "tuxedo", name: "Tuxedo", score: 10, radius: 26, sprite: "cat_tuxedo.png" },
-  { id: 3, key: "siamese", name: "Siamese", score: 18, radius: 30, sprite: "cat_siamese.png" },
-  { id: 4, key: "mainecoon", name: "Maine Coon", score: 30, radius: 35, sprite: "cat_coon.png" },
-  { id: 5, key: "bengal", name: "Bengal", score: 48, radius: 40, sprite: "cat_bengal.png" },
-  { id: 6, key: "sphynx", name: "Sphynx", score: 70, radius: 46, sprite: "cat_sphynx.png" },
-  { id: 7, key: "persian", name: "Persian Royale", score: 100, radius: 54, sprite: "cat_persian.png" }
+  { id: 1, key: "tabby", name: "Tabby", score: 5, radius: 26, sprite: "cat_tabby.png" },
+  { id: 2, key: "tuxedo", name: "Tuxedo", score: 10, radius: 30, sprite: "cat_tuxedo.png" },
+  { id: 3, key: "siamese", name: "Siamese", score: 18, radius: 34, sprite: "cat_siamese.png" },
+  { id: 4, key: "mainecoon", name: "Maine Coon", score: 30, radius: 39, sprite: "cat_coon.png" },
+  { id: 5, key: "bengal", name: "Bengal", score: 48, radius: 44, sprite: "cat_bengal.png" },
+  { id: 6, key: "sphynx", name: "Sphynx", score: 70, radius: 50, sprite: "cat_sphynx.png" },
+  { id: 7, key: "persian", name: "Persian Royale", score: 100, radius: 58, sprite: "cat_persian.png" }
 ];
 
 export const POWERUPS = {
@@ -39,4 +39,3 @@ export function isEventActive(key, now = new Date()) {
   // cross-year (e.g., Dec–Jan)
   return cur >= start || cur <= end;
 }
-
