@@ -1,4 +1,5 @@
-import { Engine, World, Bodies, Body, Events, Composite } from "matter-js";
+import * as Matter from "matter-js";
+const { Engine, World, Bodies, Body, Events, Composite } = Matter;
 import { CAT_TIERS, POWERUPS } from "./data.js";
 import { loadSave, saveSave, newDefaultSave } from "./storage.js";
 import { bindUI } from "./ui.js";
