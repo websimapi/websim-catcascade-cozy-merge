@@ -10,7 +10,7 @@ const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const tapHint = document.getElementById("tapHint");
 
-const engine = Engine.create({ gravity: { x: 0, y: 0.9 } });
+const engine = Engine.create({ gravity: { x: 0, y: -0.9 } });
 const world = engine.world;
 
 const walls = [
@@ -53,7 +53,7 @@ function prepareNext() {
 
 function spawnCat(x, tierId, opts = {}) {
   const t = CAT_TIERS[tierId];
-  const body = Bodies.circle(x, 40, t.radius, { restitution: 0.1, friction: 0.2, frictionStatic: 0.5 });
+  const body = Bodies.circle(x, H - 40, t.radius, { restitution: 0.1, friction: 0.2, frictionStatic: 0.5 });
   body.plugin = { type: "cat" };
   World.add(world, body);
   cats.set(body.id, { tier: tierId, wild: !!opts.wild, born: performance.now() });
@@ -88,7 +88,7 @@ function draw() {
   // background grid lines subtle
   ctx.save();
   ctx.globalAlpha = 0.04;
-  for (let y=100;y<H;y+=80){ ctx.fillRect(0,y,W,1); }
+  for (let y=H-100;y>0;y-=80){ ctx.fillRect(0,y,W,1); }
   ctx.restore();
 
   cats.forEach((meta, id) => {
@@ -105,10 +105,10 @@ function draw() {
     ctx.restore();
   });
 
-  // top "drop line"
+  // bottom "release line"
   ctx.save();
   ctx.globalAlpha = 0.15;
-  ctx.fillRect(0, 80, W, 2);
+  ctx.fillRect(0, H - 80, W, 2);
   ctx.restore();
 }
 
@@ -153,7 +153,7 @@ function handleMerge(a, b) {
     World.remove(world, [a, b]);
     cats.delete(a.id); cats.delete(b.id);
     const merged = spawnCat(pos.x, capped);
-    Body.setVelocity(merged, { x: 0, y: -2 });
+    Body.setVelocity(merged, { x: 0, y: 2 });
     Body.setAngularVelocity(merged, (Math.random()-0.5)*0.2);
     addScore(CAT_TIERS[capped].score);
     // combo
@@ -172,7 +172,7 @@ function handleMerge(a, b) {
     // pending magic copy effect
     if (pendingCopy) {
       const copy = spawnCat(Math.min(W-40, pos.x + 26), capped);
-      Body.setVelocity(copy, { x: 0.8, y: -2 });
+      Body.setVelocity(copy, { x: 0.8, y: 2 });
       pendingCopy = false;
     }
     saveStateDebounced();
@@ -189,12 +189,12 @@ Events.on(engine, "collisionStart", (evt) => {
 });
 
 function checkOverflow() {
-  let highest = H;
+  let lowest = 0;
   cats.forEach((meta, id) => {
     const b = Composite.get(world, id, "body");
-    if (b) highest = Math.min(highest, b.position.y - CAT_TIERS[meta.tier].radius);
+    if (b) lowest = Math.max(lowest, b.position.y + CAT_TIERS[meta.tier].radius);
   });
-  if (highest < 100) {
+  if (lowest > H - 100) {
     gameOver();
   }
 }
@@ -255,7 +255,7 @@ function usePowerUp(key) {
     cats.forEach((m, id) => {
       const b = Composite.get(world, id, "body");
       if (!b) return;
-      Body.applyForce(b, b.position, { x: (Math.random()-0.5)*0.01, y: -0.02 - Math.random()*0.01 });
+      Body.applyForce(b, b.position, { x: (Math.random()-0.5)*0.01, y: 0.02 + Math.random()*0.01 });
       Body.setAngularVelocity(b, (Math.random()-0.5)*0.6);
     });
   }
