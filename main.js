@@ -42,7 +42,7 @@ const cats = new Map(); // body.id -> { tier, wild?:boolean }
 let lastDropTime = 0;
 
 function randTierUnlocked() {
-  const max = save.unlockedTier;
+  const max = Math.min(save.unlockedTier, 1);
   return Math.floor(Math.random() * (max + 1));
 }
 function prepareNext() {
@@ -150,12 +150,12 @@ function handleMerge(a, b) {
   if (tierA === tierB || isWild) {
     const nextTier = isWild ? Math.max(tierA, tierB) + 1 : tierA + 1;
     const capped = Math.min(nextTier, CAT_TIERS.length - 1);
+    const keep = a, remove = b;
     const pos = { x: (a.position.x + b.position.x)/2, y: (a.position.y + b.position.y)/2 };
-    World.remove(world, [a, b]);
-    cats.delete(a.id); cats.delete(b.id);
-    const merged = spawnCat(pos.x, capped);
-    Body.setVelocity(merged, { x: 0, y: 2 });
-    Body.setAngularVelocity(merged, (Math.random()-0.5)*0.2);
+    const meta = cats.get(keep.id); const oldR = keep.circleRadius; const newR = CAT_TIERS[capped].radius;
+    World.remove(world, remove); cats.delete(remove.id);
+    Body.setPosition(keep, pos); Body.setVelocity(keep, { x: 0, y: 2 }); Body.setAngularVelocity(keep, (Math.random()-0.5)*0.2);
+    Body.scale(keep, newR/oldR, newR/oldR); meta.tier = capped; meta.wild = false;
     addScore(CAT_TIERS[capped].score);
     // combo
     const now = performance.now();
