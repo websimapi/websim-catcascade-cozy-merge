@@ -27,6 +27,7 @@ let sprites = {};
 let nextTierId = 0;
 let pendingCopy = false;
 let ui;
+let previewX = null, previewSprite = null;
 
 function loadSprites() {
   const keys = new Set(CAT_TIERS.map(t => t.sprite));
@@ -49,6 +50,7 @@ function prepareNext() {
   nextTierId = randTierUnlocked();
   if (ui) {
     ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]);
+    previewSprite = sprites[CAT_TIERS[nextTierId].sprite];
   }
 }
 
@@ -76,12 +78,15 @@ let dropAtX = (x) => {
 };
 
 canvas.addEventListener("pointermove", (e) => {
-  // show hint position
+  const rect = canvas.getBoundingClientRect();
+  previewX = Math.max(40, Math.min(W-40, (e.clientX - rect.left) / rect.width * W));
 });
+canvas.addEventListener("pointerleave", () => { previewX = null; });
 canvas.addEventListener("pointerdown", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width * W;
   dropAtX(x);
+  previewX = null;
 });
 
 function draw() {
@@ -91,6 +96,16 @@ function draw() {
   ctx.globalAlpha = 0.04;
   for (let y=H-100;y>0;y-=80){ ctx.fillRect(0,y,W,1); }
   ctx.restore();
+
+  // ghost preview of next cat
+  if (previewX != null && previewSprite) {
+    const r = CAT_TIERS[nextTierId].radius, s = r * 2.2;
+    ctx.save();
+    ctx.globalAlpha = 0.5;
+    ctx.translate(previewX, H - 40);
+    ctx.drawImage(previewSprite, -s/2, -s/2, s, s);
+    ctx.restore();
+  }
 
   cats.forEach((meta, id) => {
     const body = Composite.get(world, id, "body");
@@ -241,17 +256,16 @@ function restart() {
 function usePowerUp(key) {
   if (save.inventory[key] <= 0) return;
   if (key === "wild") {
-    // Replace next with wild
-    const wildTier = Math.min(save.unlockedTier, 1); // low tier drop
+    const wildTier = Math.min(save.unlockedTier, 1);
     ui.updateNext(sprites["cat_wild.png"]);
-    // when dropping, mark as wild
+    previewSprite = sprites["cat_wild.png"];
     const origDrop = dropAtX;
     const once = (x) => {
       if (!canDrop()) return;
       const body = spawnCat(Math.max(40, Math.min(W-40, x)), wildTier, { wild: true });
       lastDropTime = performance.now();
       prepareNext();
-      dropAtX = origDrop; // restore
+      dropAtX = origDrop;
     };
     dropAtX = once;
   }
