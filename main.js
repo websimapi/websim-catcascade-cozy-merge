@@ -11,6 +11,10 @@ const ctx = canvas.getContext("2d");
 const tapHint = document.getElementById("tapHint");
 const FAIL_Y = H - 80;
 
+let pointerX = W / 2;
+let wildPreviewActive = false;
+let wildPreviewTier = 0;
+
 const engine = Engine.create({ gravity: { x: 0, y: -0.9 } });
 const world = engine.world;
 
@@ -27,8 +31,6 @@ let sprites = {};
 let nextTierId = 0;
 let pendingCopy = false;
 let ui;
-let previewX = null;
-let nextSpriteKey = null, previewTierId = 0;
 
 function loadSprites() {
   const keys = new Set(CAT_TIERS.map(t => t.sprite));
@@ -49,8 +51,9 @@ function randTierUnlocked() {
 }
 function prepareNext() {
   nextTierId = randTierUnlocked();
-  nextSpriteKey = CAT_TIERS[nextTierId].sprite; previewTierId = nextTierId;
-  if (ui) { ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]); }
+  if (ui) {
+    ui.updateNext(sprites[CAT_TIERS[nextTierId].sprite]);
+  }
 }
 
 function spawnCat(x, tierId, opts = {}) {
@@ -79,14 +82,13 @@ let dropAtX = (x) => {
 canvas.addEventListener("pointermove", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width * W;
-  previewX = Math.max(40, Math.min(W-40, x));
+  pointerX = Math.max(40, Math.min(W - 40, x));
 });
 canvas.addEventListener("pointerdown", (e) => {
   const rect = canvas.getBoundingClientRect();
   const x = (e.clientX - rect.left) / rect.width * W;
   dropAtX(x);
 });
-canvas.addEventListener("pointerleave", () => { previewX = null; });
 
 function draw() {
   ctx.clearRect(0,0,W,H);
@@ -95,15 +97,6 @@ function draw() {
   ctx.globalAlpha = 0.04;
   for (let y=H-100;y>0;y-=80){ ctx.fillRect(0,y,W,1); }
   ctx.restore();
-
-  // preview ghost
-  if (previewX != null && nextSpriteKey && sprites[nextSpriteKey]) {
-    const r = CAT_TIERS[previewTierId].radius, s = r * 2.2;
-    ctx.save(); ctx.globalAlpha = 0.45;
-    ctx.translate(previewX, H - 40);
-    ctx.drawImage(sprites[nextSpriteKey], -s/2, -s/2, s, s);
-    ctx.restore();
-  }
 
   cats.forEach((meta, id) => {
     const body = Composite.get(world, id, "body");
@@ -124,6 +117,16 @@ function draw() {
   ctx.globalAlpha = 0.15;
   ctx.fillRect(0, FAIL_Y, W, 2);
   ctx.restore();
+
+  // launcher preview
+  const previewSprite = wildPreviewActive ? sprites["cat_wild.png"] : sprites[CAT_TIERS[nextTierId].sprite];
+  const tierForSize = wildPreviewActive ? CAT_TIERS[wildPreviewTier] : CAT_TIERS[nextTierId];
+  if (previewSprite && tierForSize) {
+    const s = tierForSize.radius * 2.2;
+    ctx.save(); ctx.globalAlpha = 0.9;
+    ctx.drawImage(previewSprite, pointerX - s/2, H - 36 - s/2, s, s);
+    ctx.restore();
+  }
 }
 
 // Save debounce
@@ -254,13 +257,17 @@ function restart() {
 function usePowerUp(key) {
   if (save.inventory[key] <= 0) return;
   if (key === "wild") {
-    const wildTier = Math.min(save.unlockedTier, 1);
-    ui.updateNext(sprites["cat_wild.png"]); nextSpriteKey = "cat_wild.png"; previewTierId = wildTier;
+    // Replace next with wild
+    const wildTier = Math.min(save.unlockedTier, 1); // low tier drop
+    wildPreviewActive = true; wildPreviewTier = wildTier;
+    ui.updateNext(sprites["cat_wild.png"]);
+    // when dropping, mark as wild
     const origDrop = dropAtX;
     const once = (x) => {
       if (!canDrop()) return;
       const body = spawnCat(Math.max(40, Math.min(W-40, x)), wildTier, { wild: true });
-      lastDropTime = performance.now(); prepareNext(); dropAtX = origDrop;
+      lastDropTime = performance.now();
+      prepareNext(); wildPreviewActive = false; dropAtX = origDrop;
     };
     dropAtX = once;
   }
