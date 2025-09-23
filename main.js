@@ -5,7 +5,7 @@ import { loadSave, saveSave, newDefaultSave } from "./storage.js";
 import { bindUI } from "./ui.js";
 import { runTutorial } from "./tutorial.js";
 
-const W = 420, H = 640;
+const W = 360, H = 640;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const tapHint = document.getElementById("tapHint");
