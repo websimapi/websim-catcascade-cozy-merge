@@ -33,6 +33,6 @@ body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.4 "Noto Sans",sy
   .layout{padding:8px;height:calc(100svh - var(--topbar-h) - env(safe-area-inset-bottom));grid-template-columns:1fr;max-width:100vw}
   .left-panel,.right-panel{display:none}
   .game-panel{height:100%;min-height:0;display:flex;flex-direction:column}
-  .bin{aspect-ratio:9/16;height:auto}
-  .controls{justify-content:center;margin-top:8px;position:sticky;bottom:0;background:#fff;padding-bottom:env(safe-area-inset-bottom)}
+  .bin{flex:1;min-height:0;height:auto;max-height:calc(100vw * 16/9)}
+  .controls{justify-content:center;margin-top:8px;padding-bottom:env(safe-area-inset-bottom)}
 }
